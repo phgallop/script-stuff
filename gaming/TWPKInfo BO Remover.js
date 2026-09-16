@@ -1,0 +1,67 @@
+// ==UserScript==
+// @name         TWPKInfo BO remover
+// @namespace    twpkinfo
+// @version      1.0
+// @description  if any updates https://github.com/phgallop/script-stuff/
+// @match        https://twpkinfo.com/ipoke.aspx*
+// @match        https://www.twpkinfo.com/ipoke.aspx*
+// @match        twpkinfo.ccm/ipoke.aspx
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    const brightnessRegex = /brightness\(\s*(?:0?\.1|10%)\s*\)/gi;
+
+    function corrigirElemento(elemento) {
+        if (!(elemento instanceof HTMLElement)) {
+            return;
+        }
+
+        const estilo = elemento.getAttribute('style');
+
+        if (estilo && brightnessRegex.test(estilo)) {
+            brightnessRegex.lastIndex = 0;
+
+            elemento.setAttribute(
+                'style',
+                estilo.replace(brightnessRegex, 'brightness(100%)')
+            );
+        }
+
+        brightnessRegex.lastIndex = 0;
+    }
+
+    function corrigirTudo(raiz = document) {
+        if (raiz instanceof HTMLElement) {
+            corrigirElemento(raiz);
+        }
+
+        raiz.querySelectorAll?.('[style*="brightness"]').forEach(corrigirElemento);
+    }
+
+    const observer = new MutationObserver((mutacoes) => {
+        for (const mutacao of mutacoes) {
+            if (mutacao.type === 'attributes') {
+                corrigirElemento(mutacao.target);
+            }
+
+            for (const node of mutacao.addedNodes) {
+                if (node instanceof HTMLElement) {
+                    corrigirTudo(node);
+                }
+            }
+        }
+    });
+
+    observer.observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['style']
+    });
+
+    document.addEventListener('DOMContentLoaded', () => corrigirTudo());
+})();
